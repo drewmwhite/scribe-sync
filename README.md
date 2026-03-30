@@ -2,7 +2,7 @@
 
 Sync your Kindle Scribe highlights and vocabulary to your computer — directly in your browser. No software to install, no account required.
 
-**[Try it →](https://your-username.github.io/scribe-sync)**
+**[Try it →](https://drewmwhite.github.io/scribe-sync)**
 
 ## How it works
 
