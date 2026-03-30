@@ -7,6 +7,7 @@ const OP = {
   GET_DEVICE_INFO:    0x1001,
   OPEN_SESSION:       0x1002,
   CLOSE_SESSION:      0x1003,
+  GET_STORAGE_IDS:    0x1004,
   GET_OBJECT_HANDLES: 0x1007,
   GET_OBJECT_INFO:    0x1008,
   GET_OBJECT:         0x1009,
@@ -38,7 +39,7 @@ export class MTPDevice {
   #iface = null;
   #bulkIn = null;
   #bulkOut = null;
-  #txId = 1;
+  #txId = 0; // MTP spec requires OpenSession to use transaction ID 0x00000000
 
   /**
    * Open the USB device, claim the MTP interface, and open an MTP session.
@@ -53,26 +54,48 @@ export class MTPDevice {
       await this.#device.selectConfiguration(1);
     }
 
-    // Find the MTP interface: class=6 (Still Image), subclass=1
+    // Find the MTP interface. Try standard PTP/MTP class first (class=6, subclass=1),
+    // then fall back to any interface with bulk-in + bulk-out endpoints — Amazon
+    // Kindles often advertise MTP via a vendor-specific interface class.
     let foundIface = null;
     let foundAlt = null;
-    for (const iface of this.#device.configuration.interfaces) {
-      for (const alt of iface.alternates) {
-        if (alt.interfaceClass === 6 && alt.interfaceSubclass === 1) {
-          foundIface = iface;
-          foundAlt = alt;
-          break;
+
+    const hasBulkPair = (alt) => {
+      const endpoints = alt.endpoints.filter(ep => ep.type === 'bulk');
+      return endpoints.some(ep => ep.direction === 'in') &&
+             endpoints.some(ep => ep.direction === 'out');
+    };
+
+    for (const pass of ['standard', 'fallback']) {
+      for (const iface of this.#device.configuration.interfaces) {
+        for (const alt of iface.alternates) {
+          const isStandard = alt.interfaceClass === 6 && alt.interfaceSubclass === 1;
+          if ((pass === 'standard' && isStandard) ||
+              (pass === 'fallback' && hasBulkPair(alt))) {
+            foundIface = iface;
+            foundAlt = alt;
+            break;
+          }
         }
+        if (foundIface) break;
       }
       if (foundIface) break;
     }
 
     if (!foundIface || !foundAlt) {
-      throw new MTPError('No MTP interface found on this device (class=6, subclass=1)');
+      throw new MTPError('No MTP interface found on this device');
     }
 
     this.#iface = foundIface;
-    await this.#device.claimInterface(this.#iface.interfaceNumber);
+    try {
+      await this.#device.claimInterface(this.#iface.interfaceNumber);
+    } catch (_) {
+      throw new MTPError(
+        'Could not claim the device interface — another process has it open. ' +
+        'On macOS: close Image Capture and Photos, then replug your Kindle. ' +
+        'On Linux: run "pkill gvfsd-mtp" in a terminal, then try again.'
+      );
+    }
 
     // Find bulk-in and bulk-out endpoints
     for (const ep of foundAlt.endpoints) {
@@ -112,24 +135,23 @@ export class MTPDevice {
     this.#iface = null;
     this.#bulkIn = null;
     this.#bulkOut = null;
-    this.#txId = 1;
+    this.#txId = 0;
   }
 
   /**
-   * Return an array of { handle, filename, filesize } for all objects on the device.
+   * Find a file by navigating a directory path on the device.
+   * Searches all storage IDs. Returns { handle, filename, filesize } or null.
+   *
+   * @param {string[]} pathParts  e.g. ['documents', 'My Clippings.txt']
+   * @returns {Promise<{handle: number, filename: string, filesize: number}|null>}
    */
-  async listFiles() {
-    const handles = await this.#getObjectHandles();
-    const results = [];
-    for (const handle of handles) {
-      try {
-        const info = await this.#getObjectInfo(handle);
-        results.push(info);
-      } catch (_) {
-        // Skip objects that fail to return info
-      }
+  async getFileByPath(pathParts) {
+    const storageIds = await this.#getStorageIds();
+    for (const storageId of storageIds) {
+      const result = await this.#navigatePath(storageId, pathParts);
+      if (result) return result;
     }
-    return results;
+    return null;
   }
 
   /**
@@ -164,12 +186,21 @@ export class MTPDevice {
     await this.#operation(OP.CLOSE_SESSION, []);
   }
 
-  async #getObjectHandles() {
-    // params: StorageID=0xFFFFFFFF (all), ObjectFormatCode=0x00000000 (all), AssociationOH=0xFFFFFFFF (all)
-    const payload = await this.#operation(OP.GET_OBJECT_HANDLES, [0xFFFFFFFF, 0x00000000, 0xFFFFFFFF]);
-    if (!payload || payload.byteLength < 4) {
-      return [];
+  async #getStorageIds() {
+    const payload = await this.#operation(OP.GET_STORAGE_IDS, []);
+    if (!payload || payload.byteLength < 4) return [];
+    const view = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
+    const count = view.getUint32(0, true);
+    const ids = [];
+    for (let i = 0; i < count; i++) {
+      ids.push(view.getUint32(4 + i * 4, true));
     }
+    return ids;
+  }
+
+  async #getObjectHandles(storageId, parentHandle) {
+    const payload = await this.#operation(OP.GET_OBJECT_HANDLES, [storageId, 0x00000000, parentHandle]);
+    if (!payload || payload.byteLength < 4) return [];
     const view = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
     const count = view.getUint32(0, true);
     const handles = [];
@@ -179,6 +210,30 @@ export class MTPDevice {
       handles.push(view.getUint32(offset, true));
     }
     return handles;
+  }
+
+  // Walk a path like ['documents', 'My Clippings.txt'] one segment at a time.
+  // Uses 0x00000000 as the root parent handle.
+  async #navigatePath(storageId, pathParts) {
+    let parent = 0x00000000;
+    let match = null;
+
+    for (let i = 0; i < pathParts.length; i++) {
+      const name = pathParts[i];
+      const handles = await this.#getObjectHandles(storageId, parent);
+      match = null;
+      for (const handle of handles) {
+        const info = await this.#getObjectInfo(handle);
+        if (info.filename === name) {
+          match = info;
+          break;
+        }
+      }
+      if (!match) return null;
+      parent = match.handle;
+    }
+
+    return match;
   }
 
   async #getObjectInfo(handle) {

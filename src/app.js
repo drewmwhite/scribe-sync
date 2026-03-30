@@ -1,6 +1,9 @@
 import { MTPDevice, MTPError } from './mtp.js';
 
-const TARGETS = ['My Clippings.txt', 'vocab.db'];
+const TARGETS = [
+  { filename: 'My Clippings.txt', path: ['documents', 'My Clippings.txt'] },
+  { filename: 'vocab.db',         path: ['system', 'vocabulary', 'vocab.db'] },
+];
 
 const device = new MTPDevice();
 
@@ -65,26 +68,23 @@ async function onConnectClick() {
     setStatus('Connecting…', 'busy');
     await device.connect(usbDevice);
 
-    // 4. List files
-    setStatus('Scanning device…', 'busy');
-    const files = await device.listFiles();
-
-    // 5. Download each target
+    // 4. Find and download each target file by path
     let hasError = false;
-    for (const filename of TARGETS) {
-      const entry = files.find(f => f.filename === filename);
+    for (const target of TARGETS) {
+      setStatus(`Locating ${target.filename}…`, 'busy');
+      const entry = await device.getFileByPath(target.path);
       if (!entry) {
-        addResult(filename, false);
+        addResult(target.filename, false);
         hasError = true;
         continue;
       }
-      setStatus(`Downloading ${filename}…`, 'busy');
+      setStatus(`Downloading ${target.filename}…`, 'busy');
       try {
         const buffer = await device.getObject(entry.handle);
-        triggerDownload(filename, buffer);
-        addResult(filename, true);
+        triggerDownload(target.filename, buffer);
+        addResult(target.filename, true);
       } catch (err) {
-        addResult(filename, false, err.message);
+        addResult(target.filename, false, err.message);
         hasError = true;
       }
     }
