@@ -4,235 +4,65 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>scribe-sync</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-      background: #fff;
-      color: #111;
-      line-height: 1.6;
-      font-size: 16px;
-    }
-
-    a { color: #2c5282; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-
-    .container {
-      max-width: 680px;
-      margin: 0 auto;
-      padding: 0 24px;
-    }
-
-    /* ── Header ── */
-    header {
-      padding: 72px 0 48px;
-      border-bottom: 1px solid #e8e8e8;
-    }
-
-    header h1 {
-      font-size: 2rem;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
-    }
-
-    header p {
-      margin-top: 12px;
-      font-size: 1.05rem;
-      color: #444;
-      max-width: 480px;
-    }
-
-    /* ── Download section ── */
-    .download {
-      padding: 48px 0;
-      border-bottom: 1px solid #e8e8e8;
-    }
-
-    .download h2 {
-      font-size: 1rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #666;
-      margin-bottom: 20px;
-    }
-
-    .tabs {
-      display: flex;
-      gap: 4px;
-      margin-bottom: 24px;
-    }
-
-    .tab {
-      background: none;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      padding: 6px 16px;
-      font-size: 0.875rem;
-      cursor: pointer;
-      color: #444;
-      transition: background 0.1s, color 0.1s, border-color 0.1s;
-    }
-
-    .tab.active {
-      background: #2c5282;
-      border-color: #2c5282;
-      color: #fff;
-    }
-
-    .tab:hover:not(.active) {
-      border-color: #999;
-      color: #111;
-    }
-
-    .platform-panel { display: none; }
-    .platform-panel.active { display: block; }
-
-    .platform-panel p {
-      font-size: 0.95rem;
-      color: #555;
-      margin-bottom: 16px;
-    }
-
-    /* Download button */
-    .btn-download {
-      display: inline-block;
-      background: #2c5282;
-      color: #fff;
-      padding: 12px 28px;
-      border-radius: 6px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      transition: background 0.1s;
-      /* TODO: replace href="#" with the real GitHub Releases download URL */
-    }
-
-    .btn-download:hover { background: #1a365d; text-decoration: none; }
-
-    .version-note {
-      margin-top: 12px;
-      font-size: 0.8rem;
-      color: #888;
-      font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
-    }
-
-    /* ── Features ── */
-    .features {
-      padding: 48px 0;
-      border-bottom: 1px solid #e8e8e8;
-    }
-
-    .features h2 {
-      font-size: 1rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #666;
-      margin-bottom: 20px;
-    }
-
-    .features ul {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .features li {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      font-size: 0.95rem;
-      color: #333;
-    }
-
-    .features li::before {
-      content: "—";
-      color: #2c5282;
-      font-weight: 700;
-      flex-shrink: 0;
-    }
-
-    /* ── Footer ── */
-    footer {
-      padding: 32px 0 64px;
-      font-size: 0.85rem;
-      color: #888;
-      display: flex;
-      gap: 24px;
-      flex-wrap: wrap;
-    }
-
-    footer a { color: #666; }
-  </style>
+  <link rel="stylesheet" href="src/styles.css" />
 </head>
 <body>
-
 <div class="container">
 
   <header>
     <h1>scribe-sync</h1>
-    <p>Sync your Kindle highlights and vocabulary to your computer. No cloud required.</p>
+    <p>Sync your Kindle highlights and vocabulary to your computer — directly in your browser, no software required.</p>
   </header>
 
-  <section class="download">
-    <h2>Download</h2>
+  <section class="sync">
+    <h2>Sync</h2>
 
-    <div class="tabs">
-      <button class="tab active" onclick="selectTab('linux', this)">Linux</button>
-      <button class="tab" onclick="selectTab('macos', this)">macOS</button>
-      <button class="tab" onclick="selectTab('windows', this)">Windows</button>
+    <div id="browser-warning" class="browser-warning">
+      WebUSB is not supported in this browser. Please use Chrome or Edge.
     </div>
 
-    <div id="panel-linux" class="platform-panel active">
-      <p>Connect your Kindle via USB, then run the binary.</p>
-      <!-- TODO: replace href="#" with the GitHub Releases URL for the Linux build -->
-      <a class="btn-download" href="#">Download for Linux</a>
-      <p class="version-note">scribe-sync-linux-x86_64 &nbsp;·&nbsp; v0.1.0</p>
-    </div>
+    <p class="sync-intro">
+      Connect your Kindle Scribe via USB, then click below.
+    </p>
 
-    <div id="panel-macos" class="platform-panel">
-      <p>Connect your Kindle via USB, then run the binary.</p>
-      <!-- TODO: replace href="#" with the GitHub Releases URL for the macOS build -->
-      <a class="btn-download" href="#">Download for macOS</a>
-      <p class="version-note">scribe-sync-macos-arm64 &nbsp;·&nbsp; v0.1.0</p>
-    </div>
+    <button id="btn-connect" type="button">Connect Kindle</button>
 
-    <div id="panel-windows" class="platform-panel">
-      <p>Connect your Kindle via USB, then run the executable.</p>
-      <!-- TODO: replace href="#" with the GitHub Releases URL for the Windows build -->
-      <a class="btn-download" href="#">Download for Windows</a>
-      <p class="version-note">scribe-sync-windows-x86_64.exe &nbsp;·&nbsp; v0.1.0</p>
-    </div>
+    <p id="status" data-type="idle"></p>
+    <ul id="results"></ul>
+
+    <details class="setup-notes">
+      <summary>Platform setup notes</summary>
+      <div class="setup-notes-body">
+        <div>
+          <strong>macOS</strong> — No setup required. Works out of the box in Chrome or Edge.
+        </div>
+        <div>
+          <strong>Linux</strong> — You may need a udev rule to allow non-root USB access. Run once:<br/>
+          <code>echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="1949", MODE="0664", GROUP="plugdev"' | sudo tee /etc/udev/rules.d/60-kindle.rules && sudo udevadm control --reload-rules && sudo udevadm trigger</code><br/>
+          Then add yourself to the plugdev group: <code>sudo usermod -aG plugdev $USER</code> and log out/in.
+        </div>
+        <div>
+          <strong>Windows</strong> — Windows installs its own MTP driver which blocks WebUSB. You must replace it with WinUSB using <a href="https://zadig.akeo.ie/" target="_blank" rel="noopener">Zadig</a>: open Zadig → Options → List All Devices → select your Kindle → choose WinUSB → Replace Driver. Note: after this, your Kindle will no longer appear in File Explorer as a portable device. You can revert by reinstalling the original driver in Device Manager.
+        </div>
+      </div>
+    </details>
   </section>
 
   <section class="features">
-    <h2>What it does</h2>
+    <h2>What it syncs</h2>
     <ul>
-      <li>Connects to your Kindle over USB via MTP — no drivers needed on Linux.</li>
-      <li>Extracts your highlights (<code>My Clippings.txt</code>) and vocabulary database (<code>vocab.db</code>) to your local machine.</li>
-      <li>Runs entirely offline, from the command line, with no account required.</li>
+      <li>Your highlights and notes (<code>My Clippings.txt</code>)</li>
+      <li>Your vocabulary builder database (<code>vocab.db</code>)</li>
+      <li>Runs entirely in your browser — no account, no cloud, no install</li>
     </ul>
   </section>
 
   <footer>
-    <!-- TODO: replace href="#" with the real GitHub repository URL -->
     <a href="#">GitHub</a>
     <span>MIT License</span>
   </footer>
 
 </div>
-
-<script>
-  function selectTab(platform, btn) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.platform-panel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('panel-' + platform).classList.add('active');
-  }
-</script>
-
+<script src="src/app.js" type="module"></script>
 </body>
 </html>
