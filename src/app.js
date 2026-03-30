@@ -29,6 +29,18 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+function generateCsv(words) {
+  const headers = ['Word', 'Context', 'Book', 'Author'];
+  const escape  = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const rows    = words.map(w => [
+    escape(w.searched_word),
+    escape(w.context_used),
+    escape(w.book_name),
+    escape(w.author_name),
+  ].join(','));
+  return [headers.join(','), ...rows].join('\r\n');
+}
+
 async function parseVocabDb(buffer) {
   const SQL = await initSqlJs({
     locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${file}`,
@@ -86,6 +98,13 @@ function renderVocab(words) {
 
   count.textContent = `${words.length} word${words.length !== 1 ? 's' : ''}`;
 
+  const btnCsv = document.getElementById('btn-download-csv');
+  btnCsv.onclick = () => {
+    const csv  = generateCsv(words);
+    const blob = new Blob([csv], { type: 'text/csv' });
+    triggerDownload('vocab.csv', blob);
+  };
+
   perPage.value = String(itemsPerPage);
   perPage.onchange = () => {
     itemsPerPage = Number(perPage.value);
@@ -104,8 +123,8 @@ function setStatus(msg, type = 'idle') {
   statusEl.dataset.type = type;
 }
 
-function triggerDownload(filename, buffer) {
-  const blob = new Blob([buffer]);
+function triggerDownload(filename, data) {
+  const blob = data instanceof Blob ? data : new Blob([data]);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -177,7 +196,7 @@ async function onConnectClick() {
       setStatus(`Reading ${target.filename}…`, 'busy');
       try {
         const buffer = await device.getObject(entry.handle);
-        addResult(target.filename, buffer);
+        if (target.filename !== 'vocab.db') addResult(target.filename, buffer);
 
         if (target.filename === 'vocab.db') {
           setStatus('Parsing vocabulary…', 'busy');
