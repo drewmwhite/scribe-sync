@@ -64,13 +64,71 @@ footer a { color: #666; }
   gap: 6px;
 }
 
-.result-ok  { font-size: 0.9rem; color: #276749; }
+.result-ok  { font-size: 0.9rem; color: #276749; display: flex; align-items: center; gap: 12px; }
 .result-err { font-size: 0.9rem; color: #c53030; }
+
+.btn-file-download {
+  background: none;
+  border: 1px solid #276749;
+  border-radius: 4px;
+  color: #276749;
+  font-size: 0.8rem;
+  padding: 2px 10px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.btn-file-download:hover { background: #276749; color: #fff; }
 
 /* ---- Vocabulary section ---- */
 .vocab { padding: 48px 0; border-bottom: 1px solid #e8e8e8; }
-.vocab h2 { font-size: 1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #666; margin-bottom: 8px; }
+
+.vocab-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.vocab-header h2 { font-size: 1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #666; }
+
+.vocab-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  color: #555;
+}
+.vocab-controls select {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
 .vocab-count { font-size: 0.85rem; color: #888; margin-bottom: 20px; }
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  font-size: 0.875rem;
+  color: #555;
+}
+.pagination button {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 5px 12px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: #2c5282;
+  transition: background 0.1s, border-color 0.1s;
+}
+.pagination button:hover:not(:disabled) { background: #f0f4ff; border-color: #2c5282; }
+.pagination button:disabled { color: #bbb; border-color: #eee; cursor: not-allowed; }
 
 .table-wrap { overflow-x: auto; }
 

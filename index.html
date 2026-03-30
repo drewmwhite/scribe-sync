@@ -50,7 +50,19 @@
   </section>
 
   <section id="vocab-section" class="vocab" hidden>
-    <h2>Vocabulary</h2>
+    <div class="vocab-header">
+      <h2>Vocabulary</h2>
+      <div class="vocab-controls">
+        <label for="per-page">Show</label>
+        <select id="per-page">
+          <option value="10">10</option>
+          <option value="25" selected>25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+        <span>per page</span>
+      </div>
+    </div>
     <p id="vocab-count" class="vocab-count"></p>
     <div class="table-wrap">
       <table id="vocab-table">
@@ -64,6 +76,11 @@
         </thead>
         <tbody id="vocab-tbody"></tbody>
       </table>
+    </div>
+    <div class="pagination">
+      <button id="btn-prev" type="button">&#8592; Prev</button>
+      <span id="page-indicator"></span>
+      <button id="btn-next" type="button">Next &#8594;</button>
     </div>
   </section>
 

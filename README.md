@@ -9,9 +9,20 @@ Sync your Kindle Scribe highlights and vocabulary to your computer — directly 
 1. Open the page in Chrome or Edge
 2. Plug your Kindle Scribe into your computer via USB
 3. Click **Connect Kindle** and select your device
-4. `My Clippings.txt` and `vocab.db` download automatically
+4. Your vocabulary and highlights are displayed — click **Download** to save each file
 
 Everything runs locally in your browser over WebUSB. No data leaves your machine.
+
+## Local development
+
+WebUSB requires a secure context — opening `index.html` directly as a `file://` URL will not work. Serve the project over HTTP instead:
+
+```sh
+cd scribe-sync
+python3 -m http.server 8000
+```
+
+Then open `http://localhost:8000` in Chrome or Edge. `localhost` is treated as a secure context so WebUSB works normally.
 
 ## Browser support
 

@@ -41,15 +41,25 @@ async function parseVocabDb(buffer) {
   return values.map(row => Object.fromEntries(columns.map((col, i) => [col, row[i]])));
 }
 
-function renderVocab(words) {
-  const section = document.getElementById('vocab-section');
-  const tbody   = document.getElementById('vocab-tbody');
-  const count   = document.getElementById('vocab-count');
+// ── Pagination state ─────────────────────────────────────────────────────────
+let vocabData    = [];
+let currentPage  = 1;
+let itemsPerPage = 25;
+
+function renderPage(page) {
+  const tbody     = document.getElementById('vocab-tbody');
+  const indicator = document.getElementById('page-indicator');
+  const btnPrev   = document.getElementById('btn-prev');
+  const btnNext   = document.getElementById('btn-next');
+
+  const totalPages = Math.ceil(vocabData.length / itemsPerPage);
+  currentPage = Math.max(1, Math.min(page, totalPages));
+
+  const start = (currentPage - 1) * itemsPerPage;
+  const slice = vocabData.slice(start, start + itemsPerPage);
 
   tbody.innerHTML = '';
-  count.textContent = `${words.length} word${words.length !== 1 ? 's' : ''}`;
-
-  for (const w of words) {
+  for (const w of slice) {
     const tr = document.createElement('tr');
     tr.innerHTML =
       `<td class="word-cell">${escapeHtml(w.searched_word)}</td>` +
@@ -59,7 +69,34 @@ function renderVocab(words) {
     tbody.appendChild(tr);
   }
 
+  indicator.textContent = `Page ${currentPage} of ${totalPages}`;
+  btnPrev.disabled = currentPage === 1;
+  btnNext.disabled = currentPage === totalPages;
+}
+
+function renderVocab(words) {
+  vocabData   = words;
+  currentPage = 1;
+
+  const section = document.getElementById('vocab-section');
+  const count   = document.getElementById('vocab-count');
+  const perPage = document.getElementById('per-page');
+  const btnPrev = document.getElementById('btn-prev');
+  const btnNext = document.getElementById('btn-next');
+
+  count.textContent = `${words.length} word${words.length !== 1 ? 's' : ''}`;
+
+  perPage.value = String(itemsPerPage);
+  perPage.onchange = () => {
+    itemsPerPage = Number(perPage.value);
+    renderPage(1);
+  };
+
+  btnPrev.onclick = () => renderPage(currentPage - 1);
+  btnNext.onclick = () => renderPage(currentPage + 1);
+
   section.hidden = false;
+  renderPage(1);
 }
 
 function setStatus(msg, type = 'idle') {
@@ -79,16 +116,22 @@ function triggerDownload(filename, buffer) {
   URL.revokeObjectURL(url);
 }
 
-function addResult(filename, success, detail) {
+function addResult(filename, buffer, detail) {
   const li = document.createElement('li');
-  li.className = success ? 'result-ok' : 'result-err';
-  if (success) {
-    li.textContent = `Downloaded: ${filename}`;
+  if (buffer) {
+    li.className = 'result-ok';
+    const label = document.createElement('span');
+    label.textContent = filename;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-file-download';
+    btn.textContent = 'Download';
+    btn.onclick = () => triggerDownload(filename, buffer);
+    li.append(label, btn);
   } else {
+    li.className = 'result-err';
     li.textContent = `Not found: ${filename}`;
-  }
-  if (detail) {
-    li.title = detail;
+    if (detail) li.title = detail;
   }
   resultsEl.appendChild(li);
 }
@@ -131,11 +174,10 @@ async function onConnectClick() {
         hasError = true;
         continue;
       }
-      setStatus(`Downloading ${target.filename}…`, 'busy');
+      setStatus(`Reading ${target.filename}…`, 'busy');
       try {
         const buffer = await device.getObject(entry.handle);
-        triggerDownload(target.filename, buffer);
-        addResult(target.filename, true);
+        addResult(target.filename, buffer);
 
         if (target.filename === 'vocab.db') {
           setStatus('Parsing vocabulary…', 'busy');
@@ -143,7 +185,7 @@ async function onConnectClick() {
           renderVocab(words);
         }
       } catch (err) {
-        addResult(target.filename, false, err.message);
+        addResult(target.filename, null, err.message);
         hasError = true;
       }
     }
