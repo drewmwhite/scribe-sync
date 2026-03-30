@@ -5,9 +5,62 @@ const TARGETS = [
   { filename: 'vocab.db',         path: ['system', 'vocabulary', 'vocab.db'] },
 ];
 
+const VOCAB_QUERY = `
+  SELECT
+    w.word    AS searched_word,
+    l.usage   AS context_used,
+    bi.title  AS book_name,
+    bi.authors AS author_name
+  FROM LOOKUPS AS l
+  INNER JOIN WORDS AS w ON w.id = l.word_key
+  INNER JOIN BOOK_INFO AS bi ON bi.id = l.book_key
+  ORDER BY l.timestamp DESC
+`;
+
 const device = new MTPDevice();
 
 let btnConnect, statusEl, resultsEl;
+
+function escapeHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+async function parseVocabDb(buffer) {
+  const SQL = await initSqlJs({
+    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${file}`,
+  });
+  const db = new SQL.Database(new Uint8Array(buffer));
+  const result = db.exec(VOCAB_QUERY);
+  db.close();
+  if (!result.length) return [];
+  const { columns, values } = result[0];
+  return values.map(row => Object.fromEntries(columns.map((col, i) => [col, row[i]])));
+}
+
+function renderVocab(words) {
+  const section = document.getElementById('vocab-section');
+  const tbody   = document.getElementById('vocab-tbody');
+  const count   = document.getElementById('vocab-count');
+
+  tbody.innerHTML = '';
+  count.textContent = `${words.length} word${words.length !== 1 ? 's' : ''}`;
+
+  for (const w of words) {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      `<td class="word-cell">${escapeHtml(w.searched_word)}</td>` +
+      `<td class="context-cell">${escapeHtml(w.context_used)}</td>` +
+      `<td>${escapeHtml(w.book_name)}</td>` +
+      `<td>${escapeHtml(w.author_name)}</td>`;
+    tbody.appendChild(tr);
+  }
+
+  section.hidden = false;
+}
 
 function setStatus(msg, type = 'idle') {
   statusEl.textContent = msg;
@@ -83,6 +136,12 @@ async function onConnectClick() {
         const buffer = await device.getObject(entry.handle);
         triggerDownload(target.filename, buffer);
         addResult(target.filename, true);
+
+        if (target.filename === 'vocab.db') {
+          setStatus('Parsing vocabulary…', 'busy');
+          const words = await parseVocabDb(buffer);
+          renderVocab(words);
+        }
       } catch (err) {
         addResult(target.filename, false, err.message);
         hasError = true;

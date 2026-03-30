@@ -67,6 +67,46 @@ footer a { color: #666; }
 .result-ok  { font-size: 0.9rem; color: #276749; }
 .result-err { font-size: 0.9rem; color: #c53030; }
 
+/* ---- Vocabulary section ---- */
+.vocab { padding: 48px 0; border-bottom: 1px solid #e8e8e8; }
+.vocab h2 { font-size: 1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #666; margin-bottom: 8px; }
+.vocab-count { font-size: 0.85rem; color: #888; margin-bottom: 20px; }
+
+.table-wrap { overflow-x: auto; }
+
+#vocab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+#vocab-table th {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 2px solid #e8e8e8;
+  font-weight: 600;
+  color: #444;
+  white-space: nowrap;
+}
+#vocab-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: top;
+  color: #333;
+}
+#vocab-table tr:last-child td { border-bottom: none; }
+#vocab-table tr:hover td { background: #fafafa; }
+
+.word-cell {
+  font-weight: 600;
+  color: #2c5282;
+  white-space: nowrap;
+}
+.context-cell {
+  color: #555;
+  font-style: italic;
+  max-width: 320px;
+}
+
 /* ---- Setup notes ---- */
 details.setup-notes {
   margin-top: 24px;

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>scribe-sync</title>
   <link rel="stylesheet" href="src/styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
 </head>
 <body>
 <div class="container">
@@ -46,6 +47,24 @@
         </div>
       </div>
     </details>
+  </section>
+
+  <section id="vocab-section" class="vocab" hidden>
+    <h2>Vocabulary</h2>
+    <p id="vocab-count" class="vocab-count"></p>
+    <div class="table-wrap">
+      <table id="vocab-table">
+        <thead>
+          <tr>
+            <th>Word</th>
+            <th>Context</th>
+            <th>Book</th>
+            <th>Author</th>
+          </tr>
+        </thead>
+        <tbody id="vocab-tbody"></tbody>
+      </table>
+    </div>
   </section>
 
   <section class="features">
